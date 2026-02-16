@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Aula Smart</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:white;
+  padding:20px;
+}
+h1{text-align:center;}
+.metrics{
+  display:flex;
+  gap:15px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-bottom:25px;
+}
+.sottotitoli{
+    text-align:center;
+    font-family:Arial;
+    color:white;
+    padding:20px;
+}
+.metric{
+  background:white;
+  color:#222;
+  padding:15px 20px;
+  border-radius:12px;
+  min-width:150px;
+  text-align:center;
+  font-size:18px;
+}
+.charts{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:20px;
+}
+.chart-box{
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  width:380px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>OS26 - Sensori, Energia Intelligente</h1>
+<div class="sottotitoli"> I.I.S. Majorana-Maitani</div>
+
+<div class="metrics">
+  <div class="metric">🌡 Temp: <b id="temp">--</b> °C</div>
+  <div class="metric">💧 Umidità: <b id="umid">--</b> %</div>
+  <div class="metric">💡 Luce: <b id="lux">--</b></div>
+  <div class="metric">👥 Persone: <b id="people">--</b></div>
+  <div class="metric">📈 T predetta: <b id="tpred">--</b> °C</div>
+  <div class="metric">⏱ Tempo: <b id="tempo">--</b></div>
+</div>
+<div class="charts">
+  <div class="chart-box"><canvas id="tempChart"></canvas></div>
+  <div class="chart-box"><canvas id="luxChart"></canvas></div>
+  <div class="chart-box"><canvas id="umidChart"></canvas></div>
+</div>
+
+<script>
+const url="https://script.google.com/macros/s/AKfycbwSdb_OrTqt-X3loLK-zE1BfgS2CWHUhf868IJrwIwcV0JLPAXSdevev64yX0mj52TTPQ/exec";
+
+let labels=[], tempData=[], luxData=[], umidData=[], predData=[];
+
+function creaGrafico(id,label,data){
+ return new Chart(document.getElementById(id),{
+  type:"line",
+  data:{labels,datasets:[{label,data,tension:0.3}]},
+  options:{responsive:true}
+ });
+}
+
+const tempChart=creaGrafico("tempChart","Temperatura °C",tempData);
+const luxChart=creaGrafico("luxChart","Luminosità",luxData);
+const umidChart=creaGrafico("umidChart"," B",umidData);
+
+function ultimoValore(col,dati){
+ for(let i=dati.length-1;i>=0;i--){
+  if(dati[i][col]!=="" && dati[i][col]!=null){
+    return dati[i][col];
+  }
+ }
+ return "--";
+}
+
+function aggiorna(){
+ fetch(url)
+ .then(r=>r.json())
+ .then(data=>{
+   if(!data.length) return;
+
+   labels.length=0;
+   tempData.length=0;
+   luxData.length=0;
+   umidData.length=0;
+   predData.length=0;
+
+   data.forEach(r=>{
+     const t=parseFloat(r["Temperatura (°C)"]);
+     if(isNaN(t)) return;
+
+     labels.push(r["DATA"]);
+     tempData.push(t);
+     luxData.push(parseFloat(r["Luminosità"]));
+     umidData.push(parseFloat(r["Umidità (%)"]));
+     predData.push(parseFloat(r["t predict"]) || null);
+   });
+
+   document.getElementById("temp").innerText=ultimoValore("Temperatura (°C)",data);
+   document.getElementById("lux").innerText=ultimoValore("Luminosità",data);
+   document.getElementById("umid").innerText=ultimoValore("Umidità (%)",data);
+   document.getElementById("people").innerText=ultimoValore("NUMERO PERSONE",data);
+   document.getElementById("tpred").innerText=ultimoValore("t predict",data);
+   document.getElementById("tempo").innerText=ultimoValore("tempo",data);
+
+   tempChart.update();
+   luxChart.update();
+   umidChart.update();
+   predChart.update();
+ });
+}
+
+aggiorna();
+setInterval(aggiorna,5000);
+</script>
+
+</body>
+</html>
